@@ -157,10 +157,10 @@ const ProductDetails = () => {
             <div className="mb-16">
               <div className="flex items-baseline gap-4 mb-10">
                 <span className="text-6xl font-black text-gray-900 tracking-tighter">
-                  ${product.price?.toLocaleString()}
+                  ${(product.price || 0).toLocaleString()}
                 </span>
                 <span className="text-xl font-bold text-gray-300 line-through">
-                  ${(product.price * 1.2).toLocaleString()}
+                  ${((product.price || 0) * 1.2).toLocaleString()}
                 </span>
               </div>
               <p className="text-gray-500 leading-[2] text-xl font-medium max-w-xl">
