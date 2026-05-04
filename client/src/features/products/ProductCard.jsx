@@ -15,7 +15,7 @@ const ProductCard = ({ product }) => {
 
   return (
     <motion.div
-      onClick={() => navigate(`/product/${product.id}`)}
+      onClick={() => navigate(`/product/${product._id || product.id}`)}
       whileHover={{ y: -12 }}
       className="group cursor-pointer"
     >
