@@ -1,8 +1,8 @@
 services:
   - type: web
-    name: ecommerce-backend
+    name: luxe-store-backend
     runtime: node
-    repo: https://github.com/Janvi-0620/e-commerce.git
+    repo: https://github.com/Janvi-0620/E-COMMERCE.git
     branch: main
     rootDir: server
     buildCommand: npm install
@@ -11,15 +11,10 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
+      - key: USE_MOCK_DATA
+        value: "true"
       - key: PORT
         value: "10000"
       - key: API_PREFIX
         value: /api/v1
-      - key: MONGODB_URI
-        sync: false
-      - key: JWT_SECRET
-        sync: false
-      - key: FRONTEND_URL
-        sync: false
     autoDeploy: true
-    healthCheckPath: /health
