@@ -1,0 +1,339 @@
+{
+    "info": {
+        "_postman_id": "a1b2c3d4-e5f6-4a5b-bc6d-7e8f9a0b1c2d",
+        "name": "E-Commerce 2FA Auth API",
+        "description": "Collection for testing the complete Two-Factor Authentication flow, including registration, multi-step login, and account management.",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "item": [
+        {
+            "name": "1. Register User",
+            "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n    \"email\": \"user@example.com\",\n    \"password\": \"SecurePass123!\",\n    \"firstName\": \"John\",\n    \"lastName\": \"Doe\"\n}",
+                    "options": {
+                        "json": {
+                            "language": "json"
+                        }
+                    }
+                },
+                "url": {
+                    "raw": "{{base_url}}/auth/register",
+                    "host": [
+                        "{{base_url}}"
+                    ],
+                    "path": [
+                        "auth",
+                        "register"
+                    ]
+                },
+                "description": "Registers a new user. 2FA is enabled by default."
+            },
+            "response": []
+        },
+        {
+            "name": "2. Login (Step 1 - Send OTP)",
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "const jsonData = pm.response.json();",
+                            "if (jsonData.success && jsonData.data.requiresTwoFactor) {",
+                            "    pm.environment.set(\"tempToken\", jsonData.data.tempToken);",
+                            "    console.log(\"Temporary Token saved for OTP verification\");",
+                            "}"
+                        ],
+                        "type": "text/javascript"
+                    }
+                }
+            ],
+            "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n    \"email\": \"user@example.com\",\n    \"password\": \"SecurePass123!\"\n}",
+                    "options": {
+                        "json": {
+                            "language": "json"
+                        }
+                    }
+                },
+                "url": {
+                    "raw": "{{base_url}}/auth/login",
+                    "host": [
+                        "{{base_url}}"
+                    ],
+                    "path": [
+                        "auth",
+                        "login"
+                    ]
+                },
+                "description": "Step 1 of login. Returns a tempToken which is automatically saved to environment variables."
+            },
+            "response": []
+        },
+        {
+            "name": "3. Verify OTP (Step 2 - Get JWT)",
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "const jsonData = pm.response.json();",
+                            "if (jsonData.success && jsonData.data.token) {",
+                            "    pm.environment.set(\"token\", jsonData.data.token);",
+                            "    console.log(\"Full JWT Token saved for protected routes\");",
+                            "}"
+                        ],
+                        "type": "text/javascript"
+                    }
+                }
+            ],
+            "request": {
+                "auth": {
+                    "type": "bearer",
+                    "bearer": [
+                        {
+                            "key": "token",
+                            "value": "{{tempToken}}",
+                            "type": "string"
+                        }
+                    ]
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n    \"otp\": \"123456\"\n}",
+                    "options": {
+                        "json": {
+                            "language": "json"
+                        }
+                    }
+                },
+                "url": {
+                    "raw": "{{base_url}}/auth/verify-otp",
+                    "host": [
+                        "{{base_url}}"
+                    ],
+                    "path": [
+                        "auth",
+                        "verify-otp"
+                    ]
+                },
+                "description": "Step 2 of login. Use the 6-digit code from your email (or server logs). Returns the final JWT token."
+            },
+            "response": []
+        },
+        {
+            "name": "4. Resend OTP",
+            "request": {
+                "auth": {
+                    "type": "bearer",
+                    "bearer": [
+                        {
+                            "key": "token",
+                            "value": "{{tempToken}}",
+                            "type": "string"
+                        }
+                    ]
+                },
+                "method": "POST",
+                "header": [],
+                "url": {
+                    "raw": "{{base_url}}/auth/resend-otp",
+                    "host": [
+                        "{{base_url}}"
+                    ],
+                    "path": [
+                        "auth",
+                        "resend-otp"
+                    ]
+                },
+                "description": "Triggers a new OTP email if the previous one expired or was lost. Requires the tempToken."
+            },
+            "response": []
+        },
+        {
+            "name": "5. Get Current User (Me)",
+            "request": {
+                "auth": {
+                    "type": "bearer",
+                    "bearer": [
+                        {
+                            "key": "token",
+                            "value": "{{token}}",
+                            "type": "string"
+                        }
+                    ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                    "raw": "{{base_url}}/auth/me",
+                    "host": [
+                        "{{base_url}}"
+                    ],
+                    "path": [
+                        "auth",
+                        "me"
+                    ]
+                },
+                "description": "Fetches the profile of the currently logged-in user. Requires a full JWT token."
+            },
+            "response": []
+        },
+        {
+            "name": "6. Refresh Token",
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "const jsonData = pm.response.json();",
+                            "if (jsonData.success && jsonData.data.token) {",
+                            "    pm.environment.set(\"token\", jsonData.data.token);",
+                            "}"
+                        ],
+                        "type": "text/javascript"
+                    }
+                }
+            ],
+            "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n    \"token\": \"{{token}}\"\n}",
+                    "options": {
+                        "json": {
+                            "language": "json"
+                        }
+                    }
+                },
+                "url": {
+                    "raw": "{{base_url}}/auth/refresh",
+                    "host": [
+                        "{{base_url}}"
+                    ],
+                    "path": [
+                        "auth",
+                        "refresh"
+                    ]
+                },
+                "description": "Exchanges an existing token for a fresh one."
+            },
+            "response": []
+        },
+        {
+            "name": "7. Toggle 2FA",
+            "request": {
+                "auth": {
+                    "type": "bearer",
+                    "bearer": [
+                        {
+                            "key": "token",
+                            "value": "{{token}}",
+                            "type": "string"
+                        }
+                    ]
+                },
+                "method": "PUT",
+                "header": [],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n    \"enable\": false\n}",
+                    "options": {
+                        "json": {
+                            "language": "json"
+                        }
+                    }
+                },
+                "url": {
+                    "raw": "{{base_url}}/auth/2fa/toggle",
+                    "host": [
+                        "{{base_url}}"
+                    ],
+                    "path": [
+                        "auth",
+                        "2fa",
+                        "toggle"
+                    ]
+                },
+                "description": "Enables or disables 2FA for the account. If disabled, future logins will skip the OTP step and return a token immediately."
+            },
+            "response": []
+        },
+        {
+            "name": "8. Logout",
+            "request": {
+                "auth": {
+                    "type": "bearer",
+                    "bearer": [
+                        {
+                            "key": "token",
+                            "value": "{{token}}",
+                            "type": "string"
+                        }
+                    ]
+                },
+                "method": "POST",
+                "header": [],
+                "url": {
+                    "raw": "{{base_url}}/auth/logout",
+                    "host": [
+                        "{{base_url}}"
+                    ],
+                    "path": [
+                        "auth",
+                        "logout"
+                    ]
+                },
+                "description": "Logs out the user. The frontend should clear tokens locally."
+            },
+            "response": []
+        }
+    ],
+    "event": [
+        {
+            "listen": "prerequest",
+            "script": {
+                "type": "text/javascript",
+                "exec": [
+                    ""
+                ]
+            }
+        },
+        {
+            "listen": "test",
+            "script": {
+                "type": "text/javascript",
+                "exec": [
+                    ""
+                ]
+            }
+        }
+    ],
+    "variable": [
+        {
+            "key": "base_url",
+            "value": "http://localhost:5000/api/v1",
+            "type": "string"
+        },
+        {
+            "key": "tempToken",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "token",
+            "value": "",
+            "type": "string"
+        }
+    ]
+}
