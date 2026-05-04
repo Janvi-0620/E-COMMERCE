@@ -121,24 +121,40 @@ class AuthService {
       
       if (isMockAdmin) {
         logger.info('--- ADMIN LOGIN REQUEST ---');
-        logger.info('Permission request sent to: kokkiligaddajahnavi2003@mail.com');
-        logger.info('Waiting for owner approval...');
+        logger.info('Permission request sent to: kokkiligaddajahnavi2003@gmail.com');
         logger.info('---------------------------');
       }
 
-      const otp = '123456'; // Constant OTP for mock mode
-      logger.info('--- MOCK EMAIL ---');
-      logger.info(`2FA Code for ${email}: ${otp}`);
-      logger.info('------------------');
+      // Generate a real random OTP
+      const otp = generateOTP();
+
+      // Try to send a real OTP email if SMTP is configured
+      if (env.email.smtpUser && env.email.smtpPass) {
+        try {
+          await emailService.sendOTPVerification(email, email.split('@')[0], otp, 10);
+          logger.info(`Real OTP email sent to ${email}`);
+        } catch (emailErr) {
+          // Fallback: log OTP if email fails
+          logger.warn(`Email send failed, falling back to console OTP: ${emailErr.message}`);
+          logger.info(`--- FALLBACK OTP for ${email}: ${otp} ---`);
+        }
+      } else {
+        // No SMTP configured – log OTP for debugging
+        logger.info(`--- MOCK OTP for ${email}: ${otp} ---`);
+      }
 
       const tempToken = generateToken(mockUserId, mockRole, 'TEMP', '15m');
+
+      // Store OTP in-memory (keyed by tempToken) for verification
+      global.mockOtpStore = global.mockOtpStore || {};
+      global.mockOtpStore[tempToken] = otp;
 
       return {
         requiresTwoFactor: true,
         tempToken,
         message: isMockAdmin 
-          ? `Admin login request sent to owner. Please enter 2FA code.` 
-          : `Mock OTP sent to ${email}`,
+          ? `Admin login request sent to owner. Check your email for the 2FA code.` 
+          : `OTP sent to ${email}`,
         maskedEmail: email.replace(/(.{2})(.*)(@.*)/, '$1***$3')
       };
     }
@@ -240,9 +256,16 @@ class AuthService {
 
     // Mock Mode Support
     if (env.server.mockMode) {
-      if (otp.toString().trim() !== '123456') {
-        throw new ApiError(HTTP_STATUS.UNAUTHORIZED, 'Invalid Mock OTP. Use 123456');
+      // Check the dynamic OTP from the in-memory store
+      global.mockOtpStore = global.mockOtpStore || {};
+      const expectedOtp = global.mockOtpStore[userId] || '123456'; // fallback for old tokens
+
+      if (otp.toString().trim() !== expectedOtp) {
+        throw new ApiError(HTTP_STATUS.UNAUTHORIZED, 'Invalid OTP. Please check your email.');
       }
+
+      // Clean up used OTP
+      delete global.mockOtpStore[userId];
 
       const isMockAdmin = userId === 'mock-admin-id';
       const user = {

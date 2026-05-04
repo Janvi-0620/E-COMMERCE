@@ -17,4 +17,10 @@ services:
         value: "10000"
       - key: API_PREFIX
         value: /api/v1
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: SENDER_EMAIL
+        sync: false
     autoDeploy: true
