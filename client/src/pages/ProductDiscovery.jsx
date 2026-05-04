@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { motion } from 'framer-motion';
 import { useProducts } from '../hooks/useProducts';
 import Navbar from '../components/Navbar';
 import CartDrawer from '../features/cart/CartDrawer';
