@@ -21,8 +21,8 @@ const ProductCard = ({ product }) => {
     >
       <div className="relative aspect-[3/4] rounded-[3rem] overflow-hidden bg-gray-50 mb-6 shadow-sm group-hover:shadow-2xl transition-all duration-500">
         <img
-          src={product.images[0]?.url || 'https://via.placeholder.com/400x500'}
-          alt={product.name}
+          src={product?.images?.[0]?.url || 'https://via.placeholder.com/400x500'}
+          alt={product?.name || 'Product'}
           className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out"
         />
         
