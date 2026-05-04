@@ -1,11 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Mail, Lock, ArrowRight, ShoppingBag, Github, Chrome } from 'lucide-react';
-import { useNavigate, Link } from 'react-router-dom';
-import { useAuthStore } from '../features/auth/useAuthStore';
-import OTPVerification from '../features/auth/OTPVerification';
-
-import { Mail, Lock, ArrowRight, ShoppingBag, Github, Chrome, ShieldAlert } from 'lucide-react';
+import { Mail, Lock, ArrowRight, ShoppingBag, ShieldAlert } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuthStore } from '../features/auth/useAuthStore';
 import OTPVerification from '../features/auth/OTPVerification';
@@ -21,11 +16,11 @@ const Login = () => {
     e.preventDefault();
     try {
       const result = await login(email, password);
-      if (result && result.success) {
+      if (result?.success) {
         navigate(email.toLowerCase().includes('admin') ? '/admin' : '/');
       }
     } catch (err) {
-      // Error handled in store
+      console.error('Login error:', err);
     }
   };
 
@@ -105,7 +100,9 @@ const Login = () => {
         {/* Right Side: Identity Auth */}
         <div className="w-full lg:w-1/2 p-16 sm:p-24 flex flex-col justify-center bg-white/50">
           <AnimatePresence mode="wait">
-            {!requiresTwoFactor ? (
+            {requiresTwoFactor ? (
+              <OTPVerification onVerified={handleVerified} />
+            ) : (
               <motion.div
                 key="login-form"
                 initial={{ opacity: 0, x: 40 }}
@@ -123,12 +120,13 @@ const Login = () => {
 
                 <form onSubmit={handleSubmit} className="space-y-8">
                   <div className="space-y-3">
-                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] ml-1">Identity (Email)</label>
+                    <label htmlFor="email" className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] ml-1">Identity (Email)</label>
                     <div className="relative group">
                       <div className="absolute inset-y-0 left-0 pl-6 flex items-center pointer-events-none">
                         <Mail className="h-5 w-5 text-gray-300 group-focus-within:text-indigo-600 transition-colors" />
                       </div>
                       <input
+                        id="email"
                         type="email"
                         required
                         value={email}
@@ -141,7 +139,7 @@ const Login = () => {
 
                   <div className="space-y-3">
                     <div className="flex justify-between items-center px-1">
-                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em]">Access Key</label>
+                      <label htmlFor="password" className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em]">Access Key</label>
                       <button type="button" className="text-[10px] font-black text-indigo-600 uppercase tracking-widest hover:underline">Reset Key</button>
                     </div>
                     <div className="relative group">
@@ -149,6 +147,7 @@ const Login = () => {
                         <Lock className="h-5 w-5 text-gray-300 group-focus-within:text-indigo-600 transition-colors" />
                       </div>
                       <input
+                        id="password"
                         type="password"
                         required
                         value={password}
@@ -193,8 +192,6 @@ const Login = () => {
                   </p>
                 </div>
               </motion.div>
-            ) : (
-              <OTPVerification onVerified={handleVerified} />
             )}
           </AnimatePresence>
         </div>
