@@ -111,55 +111,7 @@ class AuthService {
       throw new ApiError(HTTP_STATUS.BAD_REQUEST, 'Email and password required');
     }
 
-    // Mock Mode Support
-    if (env.server.mockMode) {
-      logger.warn(`Mock Login attempt: ${email}`);
-      
-      const isMockAdmin = email.toLowerCase().includes('admin');
-      const mockUserId = isMockAdmin ? 'mock-admin-id' : 'mock-user-id';
-      const mockRole = isMockAdmin ? 'admin' : 'user';
-      
-      if (isMockAdmin) {
-        logger.info('--- ADMIN LOGIN REQUEST ---');
-        logger.info('Permission request sent to: kokkiligaddajahnavi2003@gmail.com');
-        logger.info('---------------------------');
-      }
-
-      // Generate a real random OTP
-      const otp = generateOTP();
-
-      // Try to send a real OTP email if SMTP is configured
-      if (env.email.smtpUser && env.email.smtpPass) {
-        try {
-          await emailService.sendOTPVerification(email, email.split('@')[0], otp, 10);
-          logger.info(`Real OTP email sent to ${email}`);
-        } catch (emailErr) {
-          // Fallback: log OTP if email fails
-          logger.warn(`Email send failed, falling back to console OTP: ${emailErr.message}`);
-          logger.info(`--- FALLBACK OTP for ${email}: ${otp} ---`);
-        }
-      } else {
-        // No SMTP configured – log OTP for debugging
-        logger.info(`--- MOCK OTP for ${email}: ${otp} ---`);
-      }
-
-      const tempToken = generateToken(mockUserId, mockRole, 'TEMP', '15m');
-
-      // Store OTP in-memory (keyed by tempToken) for verification
-      global.mockOtpStore = global.mockOtpStore || {};
-      global.mockOtpStore[tempToken] = otp;
-
-      return {
-        requiresTwoFactor: true,
-        tempToken,
-        message: isMockAdmin 
-          ? `Admin login request sent to owner. Check your email for the 2FA code.` 
-          : `OTP sent to ${email}`,
-        maskedEmail: email.replace(/(.{2})(.*)(@.*)/, '$1***$3')
-      };
-    }
-
-    // 2. Find user by email (include password field)
+    // 1. Find user by email (include password field)
     const user = await User.findOne({ email: email.toLowerCase() }).select('+password +loginAttempts +loginAttemptsLockedUntil');
 
     if (!user) {
@@ -254,42 +206,7 @@ class AuthService {
       throw new ApiError(HTTP_STATUS.BAD_REQUEST, 'User ID and OTP required');
     }
 
-    // Mock Mode Support
-    if (env.server.mockMode) {
-      // Check the dynamic OTP from the in-memory store
-      global.mockOtpStore = global.mockOtpStore || {};
-      const expectedOtp = global.mockOtpStore[userId] || '123456'; // fallback for old tokens
-
-      if (otp.toString().trim() !== expectedOtp) {
-        throw new ApiError(HTTP_STATUS.UNAUTHORIZED, 'Invalid OTP. Please check your email.');
-      }
-
-      // Clean up used OTP
-      delete global.mockOtpStore[userId];
-
-      const isMockAdmin = userId === 'mock-admin-id';
-      const user = {
-        _id: userId,
-        email: isMockAdmin ? 'admin@example.com' : 'user@example.com',
-        firstName: isMockAdmin ? 'Admin' : 'User',
-        lastName: 'Mock',
-        role: isMockAdmin ? 'admin' : 'user',
-        isTwoFactorEnabled: true,
-        emailVerified: true,
-        isActive: true,
-        toJSON: function() { return this; }
-      };
-
-      const token = generateToken(user._id, user.role, 'ACCESS');
-
-      return {
-        token,
-        user,
-        message: SUCCESS_MESSAGES.LOGIN_SUCCESS
-      };
-    }
-
-    // 2. Find user
+    // 1. Find user
     const user = await User.findById(userId).select(
       '+otpCode +otpExpiresAt +otpAttempts +otpAttemptsLockedUntil'
     );
