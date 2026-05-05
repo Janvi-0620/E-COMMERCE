@@ -44,7 +44,7 @@ const ProductDetails = () => {
     );
   }
 
-  if (fetchError && !product) {
+  if (fetchError || !product) {
     return (
       <div className="h-screen flex flex-col items-center justify-center bg-white p-4 text-center">
         <div className="w-24 h-24 bg-red-50 text-red-600 rounded-[2rem] flex items-center justify-center mb-8 shadow-2xl shadow-red-100">
